@@ -125,3 +125,152 @@ print(f"\nFinal Model BCE Loss: {final_loss:.6f}")
 #    the log can cause log(0) resulting in NaN values in loss calculations.
 # 2. Using MSE loss: Optimizing Sigmoid + MSE with gradient descent causes
 #    vanishing gradient issues when predictions are highly wrong.
+
+
+
+#my own implementation
+import numpy as np
+
+import numpy as np
+from typing import Tuple, List
+
+class LogisticRegression:
+    """A clean implementation of a Binary Logistic Regression classifier using raw NumPy."""
+
+    def __init__(self, learning_rate: float = 0.1, epochs: int = 3000) -> None:
+        """
+        Initializes the model hyperparameters and sets placeholders for weights and bias.
+        
+        Parameters:
+            learning_rate: The step size used for gradient descent updates.
+            epochs: The number of times the algorithm passes over the dataset.
+        """
+        self.lr: float = learning_rate
+        self.epochs: int = epochs
+        self.w: np.ndarray = None  # Weights matrix, initialized dynamically in fit()
+        self.b: float = 0.0        # Bias scalar
+        self.loss_history: List[float] = []  # Tracks loss over training epochs
+
+    def sigmoid(self, z: np.ndarray) -> np.ndarray:
+        """
+        Applies the sigmoid activation function to map real values into probabilities between 0 and 1.
+        
+        Parameters:
+            z: Input matrix or vector (linear combinations).
+        """
+        return 1 / (1 + np.exp(-z))
+
+    def forward(self, X: np.ndarray) -> np.ndarray:
+        """
+        Performs the forward pass by computing the model's linear activation and probability outputs.
+        
+        Parameters:
+            X: Input feature matrix of shape (num_samples, num_features).
+        """
+        z = X @ self.w + self.b
+        return self.sigmoid(z)
+
+    def compute_loss(self, y: np.ndarray, predictions: np.ndarray) -> float:
+        """
+        Calculates the Binary Cross-Entropy loss.
+        
+        Parameters:
+            y: Ground truth labels of shape (num_samples, 1).
+            predictions: Predicted probabilities of shape (num_samples, 1).
+        """
+        # Small epsilon prevents log(0) which causes NaN errors
+        epsilon = 1e-15
+        predictions = np.clip(predictions, epsilon, 1 - epsilon)
+        return -np.mean(y * np.log(predictions) + (1 - y) * np.log(1 - predictions))
+
+    def backward(self, X: np.ndarray, y: np.ndarray, predictions: np.ndarray) -> Tuple[np.ndarray, float]:
+        """
+        Computes the gradients (derivatives) of the loss function with respect to weights and bias.
+        
+        Parameters:
+            X: Input feature matrix of shape (num_samples, num_features).
+            y: Ground truth labels of shape (num_samples, 1).
+            predictions: Predicted probabilities of shape (num_samples, 1).
+        """
+        num_samples = len(X)
+        error = predictions - y
+        dw = (X.T @ error) / num_samples
+        db = float(np.mean(error))
+        return dw, db
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+        """
+        Trains the logistic regression model using gradient descent.
+        
+        Parameters:
+            X: Training input features of shape (num_samples, num_features).
+            y: Training target binary labels of shape (num_samples, 1).
+        """
+        num_features = X.shape[1]
+        self.w = np.zeros((num_features, 1))
+        self.b = 0.0
+        self.loss_history = []
+
+        for epoch in range(self.epochs):
+            predictions = self.forward(X)
+            loss = self.compute_loss(y, predictions)
+            self.loss_history.append(loss)
+            
+            dw, db = self.backward(X, y, predictions)
+
+            # Gradient descent updates
+            self.w -= self.lr * dw
+            self.b -= self.lr * db
+
+            if epoch % 100 == 0:
+                print(f"Epoch {epoch:4d} | Loss: {loss:.5f}")
+
+        # Final reporting after training completes
+        print("\n--- Training Complete ---")
+        print(f"Final Learned Weights:\n{self.w}")
+        print(f"Final Learned Bias: {self.b:.5f}")
+        
+        # Calculate training accuracy
+        final_preds = self.predict(X)
+        accuracy = np.mean(final_preds == y) * 100
+        print(f"Training Accuracy: {accuracy:.2f}%\n")
+
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """
+        Predicts the raw probability estimates for each sample.
+        
+        Parameters:
+            X: Input feature matrix of shape (num_samples, num_features).
+        """
+        return self.forward(X)
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """
+        Predicts hard binary classification labels (0 or 1).
+        
+        Parameters:
+            X: Input feature matrix of shape (num_samples, num_features).
+        """
+        probabilities = self.predict_proba(X)
+        return (probabilities >= 0.5).astype(int)
+    
+    
+# X = Hours Studied (6 samples, 1 feature)
+X = np.array([[0.5], 
+              [1.7], 
+              [2.3], 
+              [3.5], 
+              [4.2], 
+              [5.5]])
+
+# y = Pass (1) or Fail (0)
+y = np.array([[0], 
+              [0], 
+              [0], 
+              [1], 
+              [1], 
+              [1]])
+
+model = LogisticRegression()
+model.fit(X,y)
+print(model.predict(X))

@@ -1,0 +1,65 @@
+
+#my own implementation
+import numpy as np
+
+
+class LogisticRegression:
+
+    def __init__(self):
+        self.w = np.zeros((1,1))
+        self.b = 0
+        self.lr = 0.1
+        self.epochs = 3000
+
+    def sigmoid(self, z):
+        return 1 / ( 1 + np.exp(-z))
+
+    def forward(self, X):
+        z =  X @ self.w + self.b
+        return self.sigmoid(z)
+
+    def compute_loss(self, y, predictions):
+        return -np.mean(y * np.log(predictions) + (1 - y) * np.log(1 - predictions))
+        
+
+    def backward(self, X, y, predictions):
+        return X.T @ (predictions-y) / len(X) , np.mean(predictions-y)
+        
+
+    def fit(self, X, y):
+        for i in range(self.epochs):
+            predictions = self.forward(X)
+            loss = self.compute_loss(y,predictions)
+            dw,dp = self.backward(X,y,predictions)
+
+            self.w = self.w - self.lr * dw
+            self.b = self.b - self.lr * dp
+
+            if i % 100 == 0:
+                print(f" epoch {i} Loss = {loss}  ")
+
+    def predict(self, X):
+        probab = self.forward(X)
+        return (probab >= 0.5 ).astype(int)
+    
+
+
+# X = Hours Studied (6 samples, 1 feature)
+X = np.array([[0.5], 
+              [1.7], 
+              [2.3], 
+              [3.5], 
+              [4.2], 
+              [5.5]])
+
+# y = Pass (1) or Fail (0)
+y = np.array([[0], 
+              [0], 
+              [0], 
+              [1], 
+              [1], 
+              [1]])
+
+model = LogisticRegression()
+model.fit(X,y)
+print(model.predict(X))
